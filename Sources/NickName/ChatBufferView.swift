@@ -26,7 +26,6 @@ struct ChatBufferView: View {
                 }
                 .padding()
             }
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
