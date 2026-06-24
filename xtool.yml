@@ -1,0 +1,6 @@
+version: 1
+bundleID: com.sleeperofsaturn.NickName
+targets:
+  NickName:
+    platform: ios
+    deployment_target: "26.0"
