@@ -1,29 +1,29 @@
-name: Swift CI
+name: iOS Build & Test
 
 on:
   push:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build:
     runs-on: macos-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Cache Swift PM Dependencies
-      uses: actions/cache@v4
-      with:
-        path: .build
-        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
-        restore-keys: |
-          ${{ runner.os }}-spm-
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
 
-    - name: Build Package (iOS Simulator)
-      run: swift build -v -Xswiftc -target -Xswiftc arm64-apple-ios17.0-simulator
-
-    - name: Run Tests (iOS Simulator)
-      run: swift test -v -Xswiftc -target -Xswiftc arm64-apple-ios17.0-simulator
+      - name: Build and Test Simulator Target
+        run: |
+          xcodebuild clean test \
+            -project NickName.xcodeproj \
+            -scheme NickName \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO
