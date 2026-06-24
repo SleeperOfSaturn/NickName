@@ -8,11 +8,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Select Xcode
@@ -20,10 +20,8 @@ jobs:
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
-      - name: Build and Test Simulator Target
+      - name: Build and Test Swift Package for iOS
         run: |
-          xcodebuild clean test \
-            -project NickName.xcodeproj \
+          xcodebuild test \
             -scheme NickName \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-            CODE_SIGNING_ALLOWED=NO
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
