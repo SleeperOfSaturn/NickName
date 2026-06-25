@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ChatView: View {
+    let channelName: String
     @State private var textmessage = ""
     @FocusState private var isInputFieldFocused: Bool
     
@@ -12,9 +13,13 @@ struct ChatView: View {
                         .monospaced()
                         .padding(.leading)
                         .focused($isInputFieldFocused)
-                
-                    Button(action: {
                     
+                    Button(action: {
+                        if let textpacket = encodePacket(channel: channelName, text: textmessage) {
+                            sendPacket(pipe: netpipe, packet: textpacket)
+                            engine.logs.append("SleeperOfSaturn : \(textmessage)")
+                            textmessage = ""
+                        }
                     }) {
                         Image(systemName: "arrow.up")
                             .font(.subheadline.bold())
@@ -22,7 +27,7 @@ struct ChatView: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 7)
                     }
-                    .background(Capsule().fill(.blue.gradient))
+                    .background(Capsule().fill(.green.gradient))
                     .padding(.trailing, 10)
                 }
                 .padding(.vertical, 8) 
@@ -32,7 +37,10 @@ struct ChatView: View {
                 .padding([.horizontal, .top])
                 .padding(.bottom, isInputFieldFocused ? 10 : 0)
             }
-            .navigationTitle("ChannelNameHere")
+            .navigationTitle(channelName)
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                joinChannel(channel: channelName)
+            }
     }
 }

@@ -4,20 +4,23 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             List {
-                NavigationLink(destination: ChatView()) {
+                NavigationLink(destination: ChatView(channelName: "##general")) {
                     HStack(spacing: 12) {
                         Image(systemName: "number")
-                            .foregroundStyle(.blue.gradient)
+                            .foregroundStyle(.green.gradient)
                             .frame(width: 24)
                         
-                        Text("ChannelNameHere")
+                        Text("##general")
                             .font(.headline)
                     }
                     .padding(.vertical, 4)
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("NickName")
+            .navigationTitle("SleeperOfSaturn"
+            .onAppear {
+                connectToIRC()
+            }
         }
     }
 }
