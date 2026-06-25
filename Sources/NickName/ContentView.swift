@@ -17,7 +17,7 @@ struct ContentView: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("SleeperOfSaturn"
+            .navigationTitle("NickName")
             .onAppear {
                 connectToIRC()
             }
