@@ -1,4 +1,4 @@
-name: iOS Build & Test
+name: Swift Package CI
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build:
     runs-on: macos-26
 
     steps:
@@ -16,13 +16,11 @@ jobs:
 
       - name: Verify toolchain
         run: |
-          xcodebuild -version
           swift --version
+          xcodebuild -version
 
-      - name: Build & Test
-        run: |
-          xcodebuild \
-            -scheme NickName \
-            -destination 'platform=iOS Simulator,name=iPhone 17' \
-            CODE_SIGNING_ALLOWED=NO \
-            test
+      - name: Build package
+        run: swift build
+
+      - name: Run tests
+        run: swift test
