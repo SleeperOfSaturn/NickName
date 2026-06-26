@@ -9,25 +9,20 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: macos-latest
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Swift 6.2
-        uses: swift-actions/setup-swift@v3
-        with:
-          swift-version: "6.2"
-
-      - name: Show versions
+      - name: Verify toolchain
         run: |
-          swift --version
           xcodebuild -version
+          swift --version
 
       - name: Build & Test
         run: |
           xcodebuild \
             -scheme NickName \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
-            test \
-            CODE_SIGNING_ALLOWED=NO
+            -destination 'platform=iOS Simulator,name=iPhone 17' \
+            CODE_SIGNING_ALLOWED=NO \
+            test
