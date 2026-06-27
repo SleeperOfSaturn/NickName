@@ -6,25 +6,67 @@ let port = NWEndpoint.Port(rawValue: 6667)!
 let netpipe = NWConnection(host: host, port: port, using: .tcp)
 
 @MainActor let engine = ChatEngine()
-
-// Marked with @MainActor to ensure all UI log updates stay safely on the main thread
 @MainActor
 class ChatEngine : ObservableObject {
     @Published var logs: [String] = []
-    
+    var viewModel: IRCViewModel?
+    private var pendingChannels: [Channel] = []
+    func beginChannelList() {
+        pendingChannels.removeAll()
+    }
     func receiveFromServer(line: String) {
+        print("RAW >", line)
+        
         let cleanLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
         let pongResponse = heartbeat(incoming: cleanLine)
         
         if pongResponse.isEmpty {
-            // WIRE ENTRANCE: Pass the raw server text straight through the sanitizer
-            logs = buildChat(chat: logs, msg: sanitizeIRCLine(cleanLine))
+            parseChannelList(rawLine: cleanLine)
+            
+            if cleanLine.contains(" 321 ")
+                || cleanLine.contains(" 322 ")
+                || cleanLine.contains(" 323 ") {
+                return
+            }
+            
+            logs = buildChat(
+                chat: logs,
+                msg: sanitizeIRCLine(cleanLine)
+            )
         } else {
-            // If the server PINGed us, reply immediately with our PONG packet
             if let pongData = pongResponse.data(using: .utf8) {
                 sendPacket(pipe: netpipe, packet: pongData)
             }
-            print(pongResponse) 
+            print(pongResponse)
+        }
+    }
+    
+    func parseChannelList(rawLine: String) {
+        if rawLine.contains(" 322 ") {
+            let components = rawLine.components(separatedBy: " ")
+            
+            guard components.count > 3 else { return }
+            
+            let channelName = components[3]
+            let topic = rawLine.components(separatedBy: " :")
+                .dropFirst()
+                .joined(separator: " :")
+            
+            let newChannel = Channel(
+                id: channelName,
+                name: channelName,
+                topic: topic
+            )
+            
+            pendingChannels.append(newChannel)
+        }
+        
+        if rawLine.contains(" 323 ") {
+            print("Received \(pendingChannels.count) channels")
+            
+            viewModel?.channels = pendingChannels
+            viewModel?.isLoadingChannels = false
+            pendingChannels.removeAll()
         }
     }
 }
@@ -65,7 +107,7 @@ func encodePacket(channel: String, text: String) -> Data? {
 
 func sendPacket(pipe: NWConnection, packet: Data) {
     pipe.send(content: packet, contentContext: .defaultMessage, isComplete: true, completion: .contentProcessed({ error in
-        if error != nil { // Checked directly against nil to clear unused variable compiler warnings
+        if error != nil { 
             print("Packet transmission failed")
         } else {
             print("Packet transmitted")
@@ -86,8 +128,6 @@ func startListening() {
         if let rawBytes = data {
             let readableText = decodeToString(packetData: rawBytes)
             
-            // Raw TCP streams can chunk multiple IRC protocol lines together.
-            // Splitting by \r\n guarantees each line is evaluated cleanly on its own.
             let lines = readableText.components(separatedBy: "\r\n")
             for line in lines {
                 if !line.isEmpty {
@@ -126,7 +166,6 @@ func joinChannel(channel: String) {
 }
 
 func sanitizeIRCLine(_ rawLine: String) -> String {
-    // 1. Handle standard chat messages (PRIVMSG)
     if rawLine.contains(" PRIVMSG ") {
         let parts = rawLine.components(separatedBy: " PRIVMSG ")
         if let prefix = parts.first, let trailing = parts.last {
@@ -142,7 +181,6 @@ func sanitizeIRCLine(_ rawLine: String) -> String {
         }
     }
     
-    // 2. Handle people joining the room
     if rawLine.contains(" JOIN ") {
         let parts = rawLine.components(separatedBy: " JOIN ")
         if let prefix = parts.first {
@@ -153,13 +191,9 @@ func sanitizeIRCLine(_ rawLine: String) -> String {
             return "System : \(username) joined the channel"
         }
     }
-    
-    // 3. Handle status/server numeric lines (like 366 End of NAMES)
-    if let lastColonIndex = rawLine.firstIndex(of: ":"), lastColonIndex != rawLine.startIndex {
+    if let lastColonIndex = rawLine.lastIndex(of: ":"), lastColonIndex != rawLine.startIndex {
         let message = String(rawLine[rawLine.index(after: lastColonIndex)...])
         return "Server : \(message)"
     }
-    
-    // Fallback if it's completely unhandled status info
     return "Server : \(rawLine)"
 }
